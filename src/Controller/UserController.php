@@ -2,10 +2,10 @@
 
 namespace App\Controller;
 
-use App\Entity\Client;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
+use App\Service\FormErrors;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,26 +13,28 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\SerializerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
+use JMS\Serializer\SerializerInterface;
 
 class UserController extends AbstractController
 {
     /**
      * Showing user
-     * @Route("/users/{id}", name="user_show", methods={"GET"})
-     * @param User $user
+     * @Route("api/users/{id}", name="user_show", methods={"GET"})
+     * @Security("user === userC.getClient() || is_granted('ROLE_ADMIN')")
+     * @param User $userC
      * @param SerializerInterface $serializer
      * @return JsonResponse
      */
-    public function show(User $user, SerializerInterface $serializer) : JsonResponse
+    public function show(User $userC, SerializerInterface $serializer) : JsonResponse
     {
-        $data = $serializer->serialize($user, 'json', ['groups' => 'user']);
-        return new JsonResponse($data, JsonResponse::HTTP_OK, [], false);
+        $data = $serializer->serialize($userC, 'json');
+        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 
     /**
      * Listing user
-     * @Route("/users", name="user_list", methods={"GET"})
+     * @Route("api/admin/users", name="user_list", methods={"GET"})
      * @param UserRepository $userRepository
      * @param SerializerInterface $serializer
      * @return JsonResponse
@@ -40,46 +42,44 @@ class UserController extends AbstractController
     public function list(UserRepository $userRepository, SerializerInterface $serializer) : JsonResponse
     {
         $users = $userRepository->findAll();
-        $data = $serializer->serialize($users, 'json', ['groups' => 'user']);
-        return new JsonResponse($data, JsonResponse::HTTP_OK, [], false);
+        $data = $serializer->serialize($users, 'json');
+        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 
     /**
-     * @Route("/{name}/users", name="user_list_client", methods={"GET"})
-     * @param Client $client
+     * @Route("api/users", name="user_list_client", methods={"GET"})
      * @param UserRepository $userRepository
      * @param SerializerInterface $serializer
      * @return JsonResponse
      */
-    public function listUserClient(Client $client, UserRepository $userRepository, SerializerInterface $serializer) : JsonResponse
+    public function listUserClient(UserRepository $userRepository, SerializerInterface $serializer) : JsonResponse
     {
-        $users = $userRepository->findBy(['client' => $client->getId()]);
-        $data = $serializer->serialize($users, 'json', ['groups' => 'user']);
-        return new JsonResponse($data);
+        $users = $userRepository->findBy(['client' => $this->getUser()]);
+        $data = $serializer->serialize($users, 'json');
+        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 
     /**
      * User creation
-     * @Route("/users", name="user_create", methods={"POST"})
+     * @Route("api/users", name="user_create", methods={"POST"})
      * @param Request $request
      * @param EntityManagerInterface $manager
-     * @param SerializerInterface $serializer
+     * @param FormErrors $formErrors
      * @return Response
      * @throws \Exception
      */
-    public function create(Request $request, EntityManagerInterface $manager, SerializerInterface $serializer) : Response
+    public function create(Request $request, EntityManagerInterface $manager, FormErrors $formErrors) : Response
     {
-        $data = $serializer->decode($request->getContent(), 'json');
+        $data = json_decode($request->getContent(), true);
         $user = new User();
         $form = $this->createForm(UserType::class, $user);
         $form->submit($data);
         if($form->isSubmitted() && !$form->isValid()) {
-            $data = (string)$form->getErrors(true,false);
-            return new JsonResponse($data, 400);
+            $errors = $formErrors->getErrors($form);
+            return new JsonResponse($errors, 400, [], false);
         }
-        $user->setActive(true)
-            ->setRole('ROLE_USER')
-            ->setCreatedAt(new DateTime());
+        $user->setCreatedAt(new DateTime())
+            ->setClient($this->getUser());
         $manager->persist($user);
         $manager->flush();
         return new Response('', Response::HTTP_CREATED);
@@ -87,29 +87,33 @@ class UserController extends AbstractController
 
     /**
      * User update
-     * @Route("/users/{id}", name="user_update", methods={"PUT"})
-     * @param User $user
+     * @Route("api/users/{id}", name="user_update", methods={"PUT"})
+     * @Security("user === userC.getClient() || is_granted('ROLE_ADMIN')")
+     * @param User $userC
      * @param Request $request
      * @param EntityManagerInterface $manager
-     * @param SerializerInterface $serializer
+     * @param FormErrors $formErrors
      * @return Response
+     * @throws \Exception
      */
-    public function update(User $user, Request $request, EntityManagerInterface $manager, SerializerInterface $serializer) : Response
+    public function update(User $userC, Request $request, EntityManagerInterface $manager, FormErrors $formErrors) : Response
     {
-        $data = $serializer->decode($request->getContent(), 'json');
-        $form = $this->createForm(UserType::class, $user);
+        $data = json_decode($request->getContent(), true);
+        $form = $this->createForm(UserType::class, $userC);
         $form->submit($data);
         if($form->isSubmitted() && !$form->isValid()) {
-            $data = (string)$form->getErrors(true,false);
-            return new JsonResponse($data, 400);
+            $errors = $formErrors->getErrors($form);
+            return new JsonResponse($errors, 400, [], false);
         }
+        $userC->setUpdatedAt(new DateTime());
         $manager->flush();
-        return new Response('', Response::HTTP_CREATED);
+        return new Response('', Response::HTTP_ACCEPTED);
     }
 
     /**
      * User delete
-     * @Route("/users/{id}", name="user_delete", methods={"DELETE"})
+     * @Route("api/users/{id}", name="user_delete", methods={"DELETE"})
+     * @Security("user === user.getClient() || is_granted('ROLE_ADMIN')")
      * @param User $user
      * @param EntityManagerInterface $manager
      * @return Response
@@ -118,6 +122,6 @@ class UserController extends AbstractController
     {
         $manager->remove($user);
         $manager->flush();
-        return new Response('', Response::HTTP_CREATED);
+        return new Response('', Response::HTTP_ACCEPTED);
     }
 }

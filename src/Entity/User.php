@@ -3,10 +3,44 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Hateoas\Configuration\Annotation as Hateoas;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Expose;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\UserRepository")
+ * @UniqueEntity("email")
+ * @ExclusionPolicy("all")
+ * @Hateoas\Relation(
+ *      "self",
+ *      href = @Hateoas\Route(
+ *          "user_show",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      )
+ * )
+ * @Hateoas\Relation(
+ *      "update",
+ *      href = @Hateoas\Route(
+ *          "user_update",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      )
+ * )
+ * @Hateoas\Relation(
+ *      "delete",
+ *      href = @Hateoas\Route(
+ *          "user_delete",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      )
+ * )
+ * @Hateoas\Relation(
+ *     "client",
+ *     embedded = @Hateoas\Embedded("expr(object.getClient())")
+ * )
  */
 class User
 {
@@ -18,20 +52,28 @@ class User
     private $id;
 
     /**
+     * @Expose
      * @ORM\Column(type="string", length=255)
-     * @Groups({"user"})
+     * @Assert\Length(
+     *     min = 3,
+     *     max = 25
+     * )
      */
     private $username;
 
     /**
+     * @Expose
      * @ORM\Column(type="string", length=255)
-     * @Groups({"user"})
+     * @Assert\Email()
+     * @Assert\Length(
+     *     max = 255
+     * )
      */
     private $email;
 
     /**
+     * @Expose
      * @ORM\Column(type="datetime")
-     * @Groups({"user"})
      */
     private $createdAt;
 

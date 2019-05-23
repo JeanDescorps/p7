@@ -5,12 +5,48 @@ namespace App\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Expose;
+use Hateoas\Configuration\Annotation as Hateoas;
+
 
 /**
+ * @ExclusionPolicy("all")
  * @ORM\Entity(repositoryClass="App\Repository\ClientRepository")
+ * @UniqueEntity("email")
+ * @UniqueEntity("name")
+ * @Hateoas\Relation(
+ *      "self",
+ *      href = @Hateoas\Route(
+ *          "user_show",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true,
+ *      )
+ * )
+ * @Hateoas\Relation(
+ *      "update",
+ *      href = @Hateoas\Route(
+ *          "user_update",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      )
+ * )
+ * @Hateoas\Relation(
+ *      "delete",
+ *      href = @Hateoas\Route(
+ *          "user_delete",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      ),
+ *      exclusion = @Hateoas\Exclusion(
+ *          excludeIf = "expr(not is_granted(['ROLE_ADMIN']))"
+ *      )
+ * )
  */
-class Client
+class Client implements UserInterface
 {
     /**
      * @ORM\Id()
@@ -20,14 +56,19 @@ class Client
     private $id;
 
     /**
+     * @Expose
      * @ORM\Column(type="string", length=255)
-     * @Groups({"client"})
+     * @Assert\Length(
+     *     min = 3,
+     *     max = 25
+     * )
      */
     private $name;
 
     /**
+     * @Expose
      * @ORM\Column(type="string", length=255)
-     * @Groups({"client"})
+     * @Assert\Email()
      */
     private $email;
 
@@ -41,10 +82,14 @@ class Client
      */
     private $password;
 
+    /**
+     * @ORM\Column(type="json")
+     */
+    private $roles = [];
+
     public function __construct()
     {
         $this->users = new ArrayCollection();
-        $this->mobiles = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -107,40 +152,9 @@ class Client
         return $this;
     }
 
-    /**
-     * @return Collection|Mobile[]
-     */
-    public function getMobiles(): Collection
+    public function getPassword(): string
     {
-        return $this->mobiles;
-    }
-
-    public function addMobile(Mobile $mobile): self
-    {
-        if (!$this->mobiles->contains($mobile)) {
-            $this->mobiles[] = $mobile;
-            $mobile->setClient($this);
-        }
-
-        return $this;
-    }
-
-    public function removeMobile(Mobile $mobile): self
-    {
-        if ($this->mobiles->contains($mobile)) {
-            $this->mobiles->removeElement($mobile);
-            // set the owning side to null (unless already changed)
-            if ($mobile->getClient() === $this) {
-                $mobile->setClient(null);
-            }
-        }
-
-        return $this;
-    }
-
-    public function getPassword(): ?string
-    {
-        return $this->password;
+        return (string) $this->password;
     }
 
     public function setPassword(string $password): self
@@ -148,5 +162,30 @@ class Client
         $this->password = $password;
 
         return $this;
+    }
+
+    public function getRoles(): ?array
+    {
+        $roles = $this->roles;
+        $roles[] = 'ROLE_USER';
+        return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    public function eraseCredentials()
+    {}
+
+    public function getSalt()
+    {}
+
+    public function getUsername()
+    {
+        return $this->email;
     }
 }

@@ -7,32 +7,31 @@ use App\Repository\MobileRepository;
 use App\Service\FormErrors;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\SerializerInterface;
+use JMS\Serializer\SerializerInterface;
 use App\Entity\Mobile;
 
 class MobileController extends AbstractController
 {
     /**
      * Showing mobile
-     * @Route("/mobiles/{id}", name="mobile_show", methods={"GET"})
+     * @Route("api/mobiles/{id}", name="mobile_show", methods={"GET"})
      * @param Mobile $mobile
      * @param SerializerInterface $serializer
      * @return JsonResponse
      */
     public function show(Mobile $mobile, SerializerInterface $serializer) : JsonResponse
     {
-        $data = $serializer->serialize($mobile, 'json', ['groups' => 'mobile']);
-        return new JsonResponse($data);
+        $data = $serializer->serialize($mobile, 'json');
+        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 
     /**
      * Listing mobile
-     * @Route("/mobiles", name="mobile_list", methods={"GET"})
+     * @Route("api/mobiles", name="mobile_list", methods={"GET"})
      * @param MobileRepository $mobileRepository
      * @param SerializerInterface $serializer
      * @return JsonResponse
@@ -40,22 +39,21 @@ class MobileController extends AbstractController
     public function list(MobileRepository $mobileRepository, SerializerInterface $serializer) : JsonResponse
     {
         $mobiles = $mobileRepository->findAll();
-        $data = $serializer->serialize($mobiles, 'json', ['groups' => 'mobile']);
-        return new JsonResponse($data);
+        $data = $serializer->serialize($mobiles, 'json');
+        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 
     /**
      * Mobile creation
-     * @Route("/mobiles", name="mobile_create", methods={"POST"})
+     * @Route("api/admin/mobiles", name="mobile_create", methods={"POST"})
      * @param Request $request
      * @param EntityManagerInterface $manager
-     * @param SerializerInterface $serializer
      * @param FormErrors $formErrors
      * @return Response
      */
-    public function create(Request $request, EntityManagerInterface $manager, SerializerInterface $serializer, FormErrors $formErrors) : Response
+    public function create(Request $request, EntityManagerInterface $manager, FormErrors $formErrors) : Response
     {
-        $data = $serializer->decode($request->getContent(), 'json');
+        $data = json_decode($request->getContent(), true);
         $mobile = new Mobile();
         $form = $this->createForm(MobileType::class, $mobile);
         $form->submit($data);
@@ -70,29 +68,29 @@ class MobileController extends AbstractController
 
     /**
      * Mobile update
-     * @Route("/mobiles/{id}", name="mobile_update", methods={"PUT"})
+     * @Route("api/admin/mobiles/{id}", name="mobile_update", methods={"PUT"})
      * @param Mobile $mobile
      * @param Request $request
      * @param EntityManagerInterface $manager
-     * @param SerializerInterface $serializer
+     * @param FormErrors $formErrors
      * @return Response
      */
-    public function update(Mobile $mobile, Request $request, EntityManagerInterface $manager, SerializerInterface $serializer) : Response
+    public function update(Mobile $mobile, Request $request, EntityManagerInterface $manager, FormErrors $formErrors) : Response
     {
-        $data = $serializer->decode($request->getContent(), 'json');
+        $data = json_decode($request->getContent(), 'json');
         $form = $this->createForm(MobileType::class, $mobile);
         $form->submit($data);
         if($form->isSubmitted() && !$form->isValid()) {
-            $data = (string)$form->getErrors(true,false);
-            return new JsonResponse($data, 400);
+            $errors = $formErrors->getErrors($form);
+            return new JsonResponse($errors, 400, [], false);
         }
         $manager->flush();
-        return new Response('', Response::HTTP_CREATED);
+        return new Response('', Response::HTTP_ACCEPTED);
     }
 
     /**
      * Mobile delete
-     * @Route("/mobiles/{id}", name="mobile_delete", methods={"DELETE"})
+     * @Route("api/admin/mobiles/{id}", name="mobile_delete", methods={"DELETE"})
      * @param Mobile $mobile
      * @param EntityManagerInterface $manager
      * @return Response
@@ -101,7 +99,7 @@ class MobileController extends AbstractController
     {
         $manager->remove($mobile);
         $manager->flush();
-        return new Response('', Response::HTTP_CREATED);
+        return new Response('', Response::HTTP_ACCEPTED);
     }
 
 }

@@ -17,9 +17,6 @@ class MobileType extends AbstractType
             ->add('name')
             ->add('price')
             ->add('description')
-            ->add('client', EntityType::class, [
-                'class' => Client::class,
-            ])
         ;
     }
 

@@ -11,7 +11,7 @@ class FormErrors
     {
         $errors = array();
         foreach ($form->getErrors() as $error) {
-            $errors[] = $error->getMessage();
+            $errors['error'][] = $error->getMessage();
         }
         foreach ($form->all() as $childForm) {
             if ($childForm instanceof FormInterface && $this->getErrors($childForm)) {

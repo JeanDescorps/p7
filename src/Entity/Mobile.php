@@ -3,11 +3,46 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Hateoas\Configuration\Annotation as Hateoas;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Expose;
 
 /**
+ * @ExclusionPolicy("all")
  * @ORM\Entity(repositoryClass="App\Repository\MobileRepository")
+ * @UniqueEntity("name")
+ * @Hateoas\Relation(
+ *      "self",
+ *      href = @Hateoas\Route(
+ *          "user_show",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true,
+ *      )
+ * )
+ * @Hateoas\Relation(
+ *      "update",
+ *      href = @Hateoas\Route(
+ *          "user_update",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      ),
+ *      exclusion = @Hateoas\Exclusion(
+ *          excludeIf = "expr(not is_granted(['ROLE_ADMIN']))"
+ *      )
+ * )
+ * @Hateoas\Relation(
+ *      "delete",
+ *      href = @Hateoas\Route(
+ *          "user_delete",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      ),
+ *      exclusion = @Hateoas\Exclusion(
+ *          excludeIf = "expr(not is_granted(['ROLE_ADMIN']))"
+ *      )
+ * )
  */
 class Mobile
 {
@@ -19,26 +54,28 @@ class Mobile
     private $id;
 
     /**
+     * @Expose
      * @ORM\Column(type="string", length=255)
      * @Assert\Length(
-     *     min = 3
+     *     min = 3,
+     *     max = 25
      * )
-     * @Groups({"mobile"})
      */
     private $name;
 
     /**
+     * @Expose
      * @ORM\Column(type="decimal", precision=6, scale=2)
-     * @Groups({"mobile"})
      */
     private $price;
 
     /**
+     * @Expose
      * @ORM\Column(type="string", length=255)
      * @Assert\Length(
-     *     min = 3
+     *     min = 3,
+     *     max = 1000
      * )
-     * @Groups({"mobile"})
      */
     private $description;
 
@@ -79,18 +116,6 @@ class Mobile
     public function setDescription(string $description): self
     {
         $this->description = $description;
-
-        return $this;
-    }
-
-    public function getClient(): ?Client
-    {
-        return $this->client;
-    }
-
-    public function setClient(?Client $client): self
-    {
-        $this->client = $client;
 
         return $this;
     }
