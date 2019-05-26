@@ -3,8 +3,8 @@
 namespace App\Controller;
 
 use App\Form\MobileType;
-use App\Repository\MobileRepository;
 use App\Service\FormErrors;
+use App\Service\Pagination;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -51,14 +51,24 @@ class MobileController extends AbstractController
      * )
      * @SWG\Tag(name="Mobile")
      * @nSecurity(name="Bearer")
-     * @param MobileRepository $mobileRepository
      * @param SerializerInterface $serializer
+     * @param Request $request
+     * @param Pagination $pagination
      * @return JsonResponse
      */
-    public function list(MobileRepository $mobileRepository, SerializerInterface $serializer) : JsonResponse
+    public function list(SerializerInterface $serializer, Request $request, Pagination $pagination) : JsonResponse
     {
-        $mobiles = $mobileRepository->findAll();
-        $data = $serializer->serialize($mobiles, 'json');
+        $limit = $request->query->get('limit', $this->getParameter('default_mobile_limit'));
+        $page = $request->query->get('page', 1);
+        $route = $request->attributes->get('_route');
+
+        $pagination->setEntityClass(Mobile::class)
+                   ->setRoute($route);
+        $pagination->setCurrentPage($page)
+                   ->setLimit($limit);
+
+        $paginated = $pagination->getData();
+        $data = $serializer->serialize($paginated, 'json');
         return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 

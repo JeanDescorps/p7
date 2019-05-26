@@ -4,8 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Client;
 use App\Form\ClientType;
-use App\Repository\ClientRepository;
 use App\Service\FormErrors;
+use App\Service\Pagination;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -54,14 +54,24 @@ class ClientController extends AbstractController
      * )
      * @SWG\Tag(name="Client")
      * @nSecurity(name="Bearer")
-     * @param ClientRepository $clientRepository
      * @param SerializerInterface $serializer
+     * @param Request $request
+     * @param Pagination $pagination
      * @return JsonResponse
      */
-    public function list(ClientRepository $clientRepository, SerializerInterface $serializer) : JsonResponse
+    public function list(SerializerInterface $serializer, Request $request, Pagination $pagination) : JsonResponse
     {
-        $clients = $clientRepository->findAll();
-        $data = $serializer->serialize($clients, 'json');
+        $limit = $request->query->get('limit', $this->getParameter('default_client_limit'));
+        $page = $request->query->get('page', 1);
+        $route = $request->attributes->get('_route');
+
+        $pagination->setEntityClass(Client::class)
+            ->setRoute($route);
+        $pagination->setCurrentPage($page)
+            ->setLimit($limit);
+
+        $paginated = $pagination->getData();
+        $data = $serializer->serialize($paginated, 'json');
         return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 

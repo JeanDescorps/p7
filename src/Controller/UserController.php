@@ -4,8 +4,8 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\UserType;
-use App\Repository\UserRepository;
 use App\Service\FormErrors;
+use App\Service\Pagination;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -54,14 +54,24 @@ class UserController extends AbstractController
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
-     * @param UserRepository $userRepository
      * @param SerializerInterface $serializer
+     * @param Request $request
+     * @param Pagination $pagination
      * @return JsonResponse
      */
-    public function list(UserRepository $userRepository, SerializerInterface $serializer) : JsonResponse
+    public function list(SerializerInterface $serializer, Request $request, Pagination $pagination) : JsonResponse
     {
-        $users = $userRepository->findAll();
-        $data = $serializer->serialize($users, 'json');
+        $limit = $request->query->get('limit', $this->getParameter('default_user_limit'));
+        $page = $request->query->get('page', 1);
+        $route = $request->attributes->get('_route');
+
+        $pagination->setEntityClass(User::class)
+            ->setRoute($route);
+        $pagination->setCurrentPage($page)
+            ->setLimit($limit);
+
+        $paginated = $pagination->getData();
+        $data = $serializer->serialize($paginated, 'json');
         return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 
@@ -74,14 +84,25 @@ class UserController extends AbstractController
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
-     * @param UserRepository $userRepository
      * @param SerializerInterface $serializer
+     * @param Request $request
+     * @param Pagination $pagination
      * @return JsonResponse
      */
-    public function listUserClient(UserRepository $userRepository, SerializerInterface $serializer) : JsonResponse
+    public function listUserClient(SerializerInterface $serializer, Request $request, Pagination $pagination) : JsonResponse
     {
-        $users = $userRepository->findBy(['client' => $this->getUser()]);
-        $data = $serializer->serialize($users, 'json');
+        $limit = $request->query->get('limit', $this->getParameter('default_user_limit'));
+        $page = $request->query->get('page', 1);
+        $route = $request->attributes->get('_route');
+
+        $pagination->setEntityClass(User::class)
+            ->setRoute($route);
+        $pagination->setCurrentPage($page)
+            ->setLimit($limit);
+        $pagination->setCriteria(['client' => $this->getUser()]);
+
+        $paginated = $pagination->getData();
+        $data = $serializer->serialize($paginated, 'json');
         return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 
