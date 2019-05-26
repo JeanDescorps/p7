@@ -21,7 +21,7 @@ use Hateoas\Configuration\Annotation as Hateoas;
  * @Hateoas\Relation(
  *      "self",
  *      href = @Hateoas\Route(
- *          "user_show",
+ *          "client_show",
  *          parameters = { "id" = "expr(object.getId())" },
  *          absolute = true,
  *      )
@@ -29,7 +29,7 @@ use Hateoas\Configuration\Annotation as Hateoas;
  * @Hateoas\Relation(
  *      "update",
  *      href = @Hateoas\Route(
- *          "user_update",
+ *          "client_update",
  *          parameters = { "id" = "expr(object.getId())" },
  *          absolute = true
  *      )
@@ -37,7 +37,7 @@ use Hateoas\Configuration\Annotation as Hateoas;
  * @Hateoas\Relation(
  *      "delete",
  *      href = @Hateoas\Route(
- *          "user_delete",
+ *          "client_delete",
  *          parameters = { "id" = "expr(object.getId())" },
  *          absolute = true
  *      ),

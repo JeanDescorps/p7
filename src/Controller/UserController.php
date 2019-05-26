@@ -15,12 +15,25 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use JMS\Serializer\SerializerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Swagger\Annotations as SWG;
+use Nelmio\ApiDocBundle\Annotation\Security as nSecurity;
 
 class UserController extends AbstractController
 {
     /**
      * Showing user
      * @Route("api/users/{id}", name="user_show", methods={"GET"})
+     * @SWG\Response(
+     *     response=200,
+     *     description="Return json array with user's details",
+     *     @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=User::class))
+     *     )
+     * )
+     * @SWG\Tag(name="User")
+     * @nSecurity(name="Bearer")
      * @Security("user === userC.getClient() || is_granted('ROLE_ADMIN')")
      * @param User $userC
      * @param SerializerInterface $serializer
@@ -33,8 +46,14 @@ class UserController extends AbstractController
     }
 
     /**
-     * Listing user
+     * Listing all users - Admin only
      * @Route("api/admin/users", name="user_list", methods={"GET"})
+     * @SWG\Response(
+     *     response=200,
+     *     description="Return json array with all the users"
+     * )
+     * @SWG\Tag(name="User")
+     * @nSecurity(name="Bearer")
      * @param UserRepository $userRepository
      * @param SerializerInterface $serializer
      * @return JsonResponse
@@ -47,7 +66,14 @@ class UserController extends AbstractController
     }
 
     /**
+     * Listing client's users
      * @Route("api/users", name="user_list_client", methods={"GET"})
+     * @SWG\Response(
+     *     response=200,
+     *     description="Return a json array with all the users bounded to the connected client"
+     * )
+     * @SWG\Tag(name="User")
+     * @nSecurity(name="Bearer")
      * @param UserRepository $userRepository
      * @param SerializerInterface $serializer
      * @return JsonResponse
@@ -62,6 +88,23 @@ class UserController extends AbstractController
     /**
      * User creation
      * @Route("api/users", name="user_create", methods={"POST"})
+     * @SWG\Parameter(
+     *   name="body",
+     *   in="body",
+     *   required=true,
+     *   @SWG\Schema(
+     *     type="object",
+     *     title="Mobile field",
+     *     @SWG\Property(property="username", type="string"),
+     *     @SWG\Property(property="email", type="string")
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=201,
+     *     description="Create an user bound to the connected client"
+     * )
+     * @SWG\Tag(name="User")
+     * @nSecurity(name="Bearer")
      * @param Request $request
      * @param EntityManagerInterface $manager
      * @param FormErrors $formErrors
@@ -88,6 +131,23 @@ class UserController extends AbstractController
     /**
      * User update
      * @Route("api/users/{id}", name="user_update", methods={"PUT"})
+     * @SWG\Parameter(
+     *   name="body",
+     *   in="body",
+     *   required=true,
+     *   @SWG\Schema(
+     *     type="object",
+     *     title="Mobile field",
+     *     @SWG\Property(property="username", type="string"),
+     *     @SWG\Property(property="email", type="string")
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=202,
+     *     description="Update an user"
+     * )
+     * @SWG\Tag(name="User")
+     * @nSecurity(name="Bearer")
      * @Security("user === userC.getClient() || is_granted('ROLE_ADMIN')")
      * @param User $userC
      * @param Request $request
@@ -113,6 +173,12 @@ class UserController extends AbstractController
     /**
      * User delete
      * @Route("api/users/{id}", name="user_delete", methods={"DELETE"})
+     * @SWG\Response(
+     *     response=202,
+     *     description="Delete an user"
+     * )
+     * @SWG\Tag(name="User")
+     * @nSecurity(name="Bearer")
      * @Security("user === user.getClient() || is_granted('ROLE_ADMIN')")
      * @param User $user
      * @param EntityManagerInterface $manager

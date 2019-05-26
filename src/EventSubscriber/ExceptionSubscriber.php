@@ -27,6 +27,8 @@ class ExceptionSubscriber implements EventSubscriberInterface
         if($event) {
             if(method_exists($event->getException(), 'getStatusCode')) {
                 $code = $event->getException()->getStatusCode();
+            } elseif($event->getException()->getCode() === 0) {
+                $code = 500;
             } else {
                 $code = $event->getException()->getCode();
             }

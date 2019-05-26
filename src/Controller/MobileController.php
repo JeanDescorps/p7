@@ -13,12 +13,25 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use JMS\Serializer\SerializerInterface;
 use App\Entity\Mobile;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Swagger\Annotations as SWG;
+use Nelmio\ApiDocBundle\Annotation\Security as nSecurity;
 
 class MobileController extends AbstractController
 {
     /**
      * Showing mobile
      * @Route("api/mobiles/{id}", name="mobile_show", methods={"GET"})
+     * @SWG\Response(
+     *     response=200,
+     *     description="Return json array with mobile's details",
+     *     @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=Mobile::class))
+     *     )
+     * )
+     * @SWG\Tag(name="Mobile")
+     * @nSecurity(name="Bearer")
      * @param Mobile $mobile
      * @param SerializerInterface $serializer
      * @return JsonResponse
@@ -32,6 +45,12 @@ class MobileController extends AbstractController
     /**
      * Listing mobile
      * @Route("api/mobiles", name="mobile_list", methods={"GET"})
+     * @SWG\Response(
+     *     response=200,
+     *     description="Return json array with all the mobiles"
+     * )
+     * @SWG\Tag(name="Mobile")
+     * @nSecurity(name="Bearer")
      * @param MobileRepository $mobileRepository
      * @param SerializerInterface $serializer
      * @return JsonResponse
@@ -44,8 +63,26 @@ class MobileController extends AbstractController
     }
 
     /**
-     * Mobile creation
+     * Mobile creation - Admin only
      * @Route("api/admin/mobiles", name="mobile_create", methods={"POST"})
+     * @SWG\Parameter(
+     *   name="body",
+     *   in="body",
+     *   required=true,
+     *   @SWG\Schema(
+     *     type="object",
+     *     title="Mobile field",
+     *     @SWG\Property(property="name", type="string"),
+     *     @SWG\Property(property="price", type="string"),
+     *     @SWG\Property(property="description", type="string")
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=201,
+     *     description="Create a mobile"
+     * )
+     * @SWG\Tag(name="Mobile")
+     * @nSecurity(name="Bearer")
      * @param Request $request
      * @param EntityManagerInterface $manager
      * @param FormErrors $formErrors
@@ -67,8 +104,26 @@ class MobileController extends AbstractController
     }
 
     /**
-     * Mobile update
+     * Mobile update - Admin only
      * @Route("api/admin/mobiles/{id}", name="mobile_update", methods={"PUT"})
+     * @SWG\Parameter(
+     *   name="body",
+     *   in="body",
+     *   required=true,
+     *   @SWG\Schema(
+     *     type="object",
+     *     title="Mobile field",
+     *     @SWG\Property(property="name", type="string"),
+     *     @SWG\Property(property="price", type="string"),
+     *     @SWG\Property(property="description", type="string")
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=202,
+     *     description="Update a mobile"
+     * )
+     * @SWG\Tag(name="Mobile")
+     * @nSecurity(name="Bearer")
      * @param Mobile $mobile
      * @param Request $request
      * @param EntityManagerInterface $manager
@@ -89,8 +144,14 @@ class MobileController extends AbstractController
     }
 
     /**
-     * Mobile delete
+     * Mobile delete - Admin only
      * @Route("api/admin/mobiles/{id}", name="mobile_delete", methods={"DELETE"})
+     * @SWG\Response(
+     *     response=202,
+     *     description="Delete a mobile"
+     * )
+     * @SWG\Tag(name="Mobile")
+     * @nSecurity(name="Bearer")
      * @param Mobile $mobile
      * @param EntityManagerInterface $manager
      * @return Response

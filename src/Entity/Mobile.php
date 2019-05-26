@@ -16,7 +16,7 @@ use JMS\Serializer\Annotation\Expose;
  * @Hateoas\Relation(
  *      "self",
  *      href = @Hateoas\Route(
- *          "user_show",
+ *          "mobile_show",
  *          parameters = { "id" = "expr(object.getId())" },
  *          absolute = true,
  *      )
@@ -24,7 +24,7 @@ use JMS\Serializer\Annotation\Expose;
  * @Hateoas\Relation(
  *      "update",
  *      href = @Hateoas\Route(
- *          "user_update",
+ *          "mobile_update",
  *          parameters = { "id" = "expr(object.getId())" },
  *          absolute = true
  *      ),
@@ -35,7 +35,7 @@ use JMS\Serializer\Annotation\Expose;
  * @Hateoas\Relation(
  *      "delete",
  *      href = @Hateoas\Route(
- *          "user_delete",
+ *          "mobile_delete",
  *          parameters = { "id" = "expr(object.getId())" },
  *          absolute = true
  *      ),
