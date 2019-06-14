@@ -58,6 +58,7 @@ class Client implements UserInterface
     /**
      * @Expose
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
      * @Assert\Length(
      *     min = 3,
      *     max = 25
@@ -68,6 +69,7 @@ class Client implements UserInterface
     /**
      * @Expose
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
      * @Assert\Email()
      */
     private $email;
@@ -79,6 +81,12 @@ class Client implements UserInterface
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
+     * @Assert\Regex(
+     *     pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W)^",
+     *     match = true,
+     *     message = "Password must contain at least one lowercase, one uppercase, one digit and one special character !"
+     * )
      */
     private $password;
 

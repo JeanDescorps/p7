@@ -39,7 +39,10 @@ use JMS\Serializer\Annotation\Expose;
  * )
  * @Hateoas\Relation(
  *     "client",
- *     embedded = @Hateoas\Embedded("expr(object.getClient())")
+ *     embedded = @Hateoas\Embedded("expr(object.getClient())"),
+ *     exclusion = @Hateoas\Exclusion(
+ *          excludeIf = "expr(not is_granted(['ROLE_ADMIN']))"
+ *      )
  * )
  */
 class User
@@ -54,6 +57,7 @@ class User
     /**
      * @Expose
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
      * @Assert\Length(
      *     min = 3,
      *     max = 25
@@ -64,6 +68,7 @@ class User
     /**
      * @Expose
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
      * @Assert\Email()
      * @Assert\Length(
      *     max = 255

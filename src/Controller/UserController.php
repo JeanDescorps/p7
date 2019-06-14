@@ -4,8 +4,10 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\UserType;
+use App\Repository\UserRepository;
 use App\Service\FormErrors;
 use App\Service\Pagination;
+use App\Service\TableDetails;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,19 +20,44 @@ use JMS\Serializer\SerializerInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
 use Swagger\Annotations as SWG;
 use Nelmio\ApiDocBundle\Annotation\Security as nSecurity;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+/**
+ * Class UserController
+ * @package App\Controller
+ * @Route("api/", name="user_")
+ */
 class UserController extends AbstractController
 {
     /**
-     * Showing user
-     * @Route("api/users/{id}", name="user_show", methods={"GET"})
+     * Get details about a specific user
+     * @Route("users/{id}", name="show", methods={"GET"})
+     * @SWG\Parameter(
+     *   name="id",
+     *   description="Id of the user to get",
+     *   in="path",
+     *   required=true,
+     *   type="integer"
+     * )
      * @SWG\Response(
      *     response=200,
-     *     description="Return json array with user's details",
+     *     description="OK",
      *     @SWG\Schema(
      *         type="array",
      *         @SWG\Items(ref=@Model(type=User::class))
      *     )
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
+     * )
+     * @SWG\Response(
+     *     response=404,
+     *     description="NOT FOUND"
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
@@ -46,21 +73,56 @@ class UserController extends AbstractController
     }
 
     /**
-     * Listing all users - Admin only
-     * @Route("api/admin/users", name="user_list", methods={"GET"})
+     * Get list of all users - Admin only
+     * @Route("admin/users", name="list", methods={"GET"})
+     * @SWG\Parameter(
+     *   name="page",
+     *   description="The page number to show",
+     *   in="query",
+     *   type="integer"
+     * )
+     * @SWG\Parameter(
+     *   name="limit",
+     *   description="The number of user per page",
+     *   in="query",
+     *   type="integer"
+     * )
      * @SWG\Response(
      *     response=200,
-     *     description="Return json array with all the users"
+     *     description="OK",
+     *      @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=User::class))
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
      * @param SerializerInterface $serializer
      * @param Request $request
      * @param Pagination $pagination
+     * @param TableDetails $tableDetails
      * @return JsonResponse
+     * @throws \Doctrine\DBAL\DBALException
      */
-    public function list(SerializerInterface $serializer, Request $request, Pagination $pagination) : JsonResponse
+    public function list(SerializerInterface $serializer, Request $request, Pagination $pagination, TableDetails $tableDetails) : JsonResponse
     {
+        $response = new JsonResponse();
+        $response->setEtag(md5($tableDetails->lastUpdate('user') . $this->getUser()->getEmail()));
+        $response->headers->addCacheControlDirective('no-control');
+        $response->setPublic();
+
+        if($response->isNotModified($request)) {
+            return $response;
+        }
+
         $limit = $request->query->get('limit', $this->getParameter('default_user_limit'));
         $page = $request->query->get('page', 1);
         $route = $request->attributes->get('_route');
@@ -72,25 +134,59 @@ class UserController extends AbstractController
 
         $paginated = $pagination->getData();
         $data = $serializer->serialize($paginated, 'json');
-        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
+
+        $response->setJson($data);
+
+        return $response;
     }
 
     /**
-     * Listing client's users
-     * @Route("api/users", name="user_list_client", methods={"GET"})
+     * Get users client list
+     * @Route("users", name="list_client", methods={"GET"})
+     * @SWG\Parameter(
+     *   name="page",
+     *   description="The page number to show",
+     *   in="query",
+     *   type="integer"
+     * )
+     * @SWG\Parameter(
+     *   name="limit",
+     *   description="The number of user per page",
+     *   in="query",
+     *   type="integer"
+     * )
      * @SWG\Response(
      *     response=200,
-     *     description="Return a json array with all the users bounded to the connected client"
+     *     description="OK",
+     *      @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=User::class))
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
      * @param SerializerInterface $serializer
      * @param Request $request
      * @param Pagination $pagination
+     * @param UserRepository $userRepository
      * @return JsonResponse
      */
-    public function listUserClient(SerializerInterface $serializer, Request $request, Pagination $pagination) : JsonResponse
+    public function listUserClient(SerializerInterface $serializer, Request $request, Pagination $pagination, UserRepository $userRepository) : JsonResponse
     {
+        $response = new JsonResponse();
+        $userClient = $serializer->serialize($userRepository->findBy(['client' => $this->getUser()]), 'json');
+        $response->setEtag(md5($userClient . $this->getUser()->getEmail()));
+        $response->headers->addCacheControlDirective('no-control');
+        $response->setPublic();
+
+        if($response->isNotModified($request)) {
+            return $response;
+        }
+
         $limit = $request->query->get('limit', $this->getParameter('default_user_limit'));
         $page = $request->query->get('page', 1);
         $route = $request->attributes->get('_route');
@@ -103,69 +199,115 @@ class UserController extends AbstractController
 
         $paginated = $pagination->getData();
         $data = $serializer->serialize($paginated, 'json');
-        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
+
+        $response->setJson($data);
+
+        return $response;
     }
 
     /**
      * User creation
-     * @Route("api/users", name="user_create", methods={"POST"})
+     * @Route("users", name="create", methods={"POST"})
      * @SWG\Parameter(
-     *   name="body",
+     *   name="User",
+     *   description="Fields to provide to create an user",
      *   in="body",
      *   required=true,
+     *   type="json",
      *   @SWG\Schema(
      *     type="object",
-     *     title="Mobile field",
+     *     title="User field",
      *     @SWG\Property(property="username", type="string"),
      *     @SWG\Property(property="email", type="string")
      *     )
      * )
      * @SWG\Response(
      *     response=201,
-     *     description="Create an user bound to the connected client"
+     *     description="CREATED",
+     *     @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=User::class))
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=400,
+     *     description="BAD REQUEST"
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
      * @param Request $request
      * @param EntityManagerInterface $manager
-     * @param FormErrors $formErrors
-     * @return Response
+     * @param SerializerInterface $serializer
+     * @param ValidatorInterface $validator
+     * @return JsonResponse
      * @throws \Exception
      */
-    public function create(Request $request, EntityManagerInterface $manager, FormErrors $formErrors) : Response
+    public function create(Request $request, EntityManagerInterface $manager, SerializerInterface $serializer, ValidatorInterface $validator) : JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        $user = new User();
-        $form = $this->createForm(UserType::class, $user);
-        $form->submit($data);
-        if($form->isSubmitted() && !$form->isValid()) {
-            $errors = $formErrors->getErrors($form);
-            return new JsonResponse($errors, 400, [], false);
+        $user = $serializer->deserialize($request->getContent(), User::class, 'json');
+        $errors = $validator->validate($user);
+        if(count($errors) > 0) {
+            $data = $serializer->serialize($errors, 'json');
+            return new JsonResponse($data, 400, [], true);
         }
         $user->setCreatedAt(new DateTime())
             ->setClient($this->getUser());
         $manager->persist($user);
         $manager->flush();
-        return new Response('', Response::HTTP_CREATED);
+        $data = $serializer->serialize($user, 'json');
+        return new JsonResponse($data, Response::HTTP_CREATED, [], true);
     }
 
     /**
      * User update
-     * @Route("api/users/{id}", name="user_update", methods={"PUT"})
+     * @Route("users/{id}", name="update", methods={"PUT"})
      * @SWG\Parameter(
-     *   name="body",
+     *   name="id",
+     *   description="Id of the user to update",
+     *   in="path",
+     *   required=true,
+     *   type="integer"
+     * )
+     * @SWG\Parameter(
+     *   name="User",
+     *   description="Fields to provide to update an user",
      *   in="body",
      *   required=true,
+     *   type="json",
      *   @SWG\Schema(
      *     type="object",
-     *     title="Mobile field",
+     *     title="User field",
      *     @SWG\Property(property="username", type="string"),
      *     @SWG\Property(property="email", type="string")
      *     )
      * )
      * @SWG\Response(
-     *     response=202,
-     *     description="Update an user"
+     *     response=200,
+     *     description="OK",
+     *     @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=User::class))
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=400,
+     *     description="BAD REQUEST"
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
+     * )
+     * @SWG\Response(
+     *     response=404,
+     *     description="NOT FOUND"
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
@@ -174,12 +316,14 @@ class UserController extends AbstractController
      * @param Request $request
      * @param EntityManagerInterface $manager
      * @param FormErrors $formErrors
-     * @return Response
+     * @param SerializerInterface $serializer
+     * @return JsonResponse
      * @throws \Exception
      */
-    public function update(User $userC, Request $request, EntityManagerInterface $manager, FormErrors $formErrors) : Response
+    public function update(User $userC, Request $request, EntityManagerInterface $manager, FormErrors $formErrors, SerializerInterface $serializer) : JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $data = json_decode($request->getContent(), 'json');
+        // Use symfony/forms for update @see https://github.com/schmittjoh/JMSSerializerBundle/issues/575#issuecomment-303058694
         $form = $this->createForm(UserType::class, $userC);
         $form->submit($data);
         if($form->isSubmitted() && !$form->isValid()) {
@@ -188,27 +332,47 @@ class UserController extends AbstractController
         }
         $userC->setUpdatedAt(new DateTime());
         $manager->flush();
-        return new Response('', Response::HTTP_ACCEPTED);
+        $data = $serializer->serialize($userC, 'json');
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 
     /**
-     * User delete
-     * @Route("api/users/{id}", name="user_delete", methods={"DELETE"})
+     * User deletion
+     * @Route("users/{id}", name="delete", methods={"DELETE"})
+     * @SWG\Parameter(
+     *   name="id",
+     *   description="Id of the user to delete",
+     *   in="path",
+     *   required=true,
+     *   type="integer"
+     * )
      * @SWG\Response(
-     *     response=202,
-     *     description="Delete an user"
+     *     response=204,
+     *     description="NO CONTENT"
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
+     * )
+     * @SWG\Response(
+     *     response=404,
+     *     description="NOT FOUND"
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
      * @Security("user === user.getClient() || is_granted('ROLE_ADMIN')")
      * @param User $user
      * @param EntityManagerInterface $manager
-     * @return Response
+     * @return JsonResponse
      */
-    public function delete(User $user, EntityManagerInterface $manager) : Response
+    public function delete(User $user, EntityManagerInterface $manager) : JsonResponse
     {
         $manager->remove($user);
         $manager->flush();
-        return new Response('', Response::HTTP_ACCEPTED);
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }

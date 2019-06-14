@@ -3,20 +3,21 @@
 namespace App\Controller;
 
 
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Swagger\Annotations as SWG;
 
 
-class SecurityController extends AbstractController
+class SecurityController
 {
     /**
      * @Route("/login", name="login", methods={"POST"})
      * @SWG\Parameter(
-     *   name="body",
+     *   name="Login",
+     *   description="Fields to provide to sign in and get a token",
      *   in="body",
      *   required=true,
+     *   type="json",
      *   @SWG\Schema(
      *     type="object",
      *     title="Login field",
@@ -26,18 +27,25 @@ class SecurityController extends AbstractController
      * )
      * @SWG\Response(
      *     response=200,
-     *     description="Return authentication token"
+     *     description="OK",
+     *     @SWG\Schema(
+     *      type="string",
+     *      title="Token",
+     *      @SWG\Property(property="token", type="string"),
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=400,
+     *     description="Bad request - Invalid JSON",
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="Bad credentials",
      * )
      * @SWG\Tag(name="Authentication")
      * @return JsonResponse
      */
     public function login() : JsonResponse
     {
-        $user = $this->getUser();
-
-        return $this->json([
-            'name' => $user->getName(),
-            'email' => $user->getEmail(),
-        ]);
     }
 }

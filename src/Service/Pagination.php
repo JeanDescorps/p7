@@ -94,16 +94,11 @@ class Pagination
     /**
      * Get the value of manager
      */
-    public function getManager()
+    public function getManager() : EntityManagerInterface
     {
         return $this->manager;
     }
 
-    /**
-     * Set the value of manager
-     *
-     * @return  self
-     */
     public function setManager($manager)
     {
         $this->manager = $manager;

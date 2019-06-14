@@ -56,6 +56,7 @@ class Mobile
     /**
      * @Expose
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
      * @Assert\Length(
      *     min = 3,
      *     max = 25
@@ -65,13 +66,19 @@ class Mobile
 
     /**
      * @Expose
-     * @ORM\Column(type="decimal", precision=6, scale=2)
+     * @ORM\Column(type="decimal", precision=65, scale=2)
+     * @Assert\NotBlank
+     * @Assert\Regex(
+     *     pattern="/^[0-9]+(\.[0-9]{1,2})?$/",
+     *     match="true"
+     * )
      */
     private $price;
 
     /**
      * @Expose
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
      * @Assert\Length(
      *     min = 3,
      *     max = 1000

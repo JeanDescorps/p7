@@ -21,22 +21,17 @@ class ExceptionSubscriber implements EventSubscriberInterface
     /**
      * @param GetResponseForExceptionEvent $event
      */
-    public function processException(GetResponseForExceptionEvent $event)
+    public function processException(GetResponseForExceptionEvent $event) : void
     {
-        $result = [];
-        if($event) {
-            if(method_exists($event->getException(), 'getStatusCode')) {
-                $code = $event->getException()->getStatusCode();
-            } elseif($event->getException()->getCode() === 0) {
-                $code = 500;
-            } else {
-                $code = $event->getException()->getCode();
-            }
-            $result = [
-                'code' => $code,
-                'message' => $event->getException()->getMessage()
-            ];
+        if(method_exists($event->getException(), 'getStatusCode')) {
+            $code = $event->getException()->getStatusCode();
+        } else {
+            $code = $event->getException()->getCode() === 0 ? 500 : $event->getException()->getCode();
         }
+        $result = [
+            'code' => $code,
+            'message' => $event->getException()->getMessage()
+        ];
 
         $body = $this->serializer->serialize($result, 'json');
 

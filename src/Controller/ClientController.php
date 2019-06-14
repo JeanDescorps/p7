@@ -6,8 +6,8 @@ use App\Entity\Client;
 use App\Form\ClientType;
 use App\Service\FormErrors;
 use App\Service\Pagination;
+use App\Service\TableDetails;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,19 +18,44 @@ use Nelmio\ApiDocBundle\Annotation\Model;
 use Swagger\Annotations as SWG;
 use Nelmio\ApiDocBundle\Annotation\Security as nSecurity;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class ClientController extends AbstractController
+/**
+ * Class ClientController
+ * @package App\Controller
+ * @Route("api/", name="client_")
+ */
+class ClientController
 {
     /**
-     * Showing client
-     * @Route("api/clients/{id}", name="client_show", methods={"GET"})
+     * Get details about a specific client
+     * @Route("clients/{id}", name="show", methods={"GET"})
+     * @SWG\Parameter(
+     *   name="id",
+     *   description="Id of the client to get",
+     *   in="path",
+     *   required=true,
+     *   type="integer"
+     * )
      * @SWG\Response(
      *     response=200,
-     *     description="Return json array with client's details",
+     *     description="OK",
      *     @SWG\Schema(
      *         type="array",
      *         @SWG\Items(ref=@Model(type=Client::class))
      *     )
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
+     * )
+     * @SWG\Response(
+     *     response=404,
+     *     description="NOT FOUND"
      * )
      * @SWG\Tag(name="Client")
      * @nSecurity(name="Bearer")
@@ -47,20 +72,55 @@ class ClientController extends AbstractController
 
     /**
      * Listing client - Admin only
-     * @Route("api/admin/clients", name="client_list", methods={"GET"})
+     * @Route("admin/clients", name="list", methods={"GET"})
+     * @SWG\Parameter(
+     *   name="page",
+     *   description="The page number to show",
+     *   in="query",
+     *   type="integer"
+     * )
+     * @SWG\Parameter(
+     *   name="limit",
+     *   description="The number of client per page",
+     *   in="query",
+     *   type="integer"
+     * )
      * @SWG\Response(
      *     response=200,
-     *     description="Return json array with all clients"
+     *     description="OK",
+     *      @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=Client::class))
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
      * )
      * @SWG\Tag(name="Client")
      * @nSecurity(name="Bearer")
      * @param SerializerInterface $serializer
      * @param Request $request
      * @param Pagination $pagination
+     * @param TableDetails $tableDetails
      * @return JsonResponse
+     * @throws \Doctrine\DBAL\DBALException
      */
-    public function list(SerializerInterface $serializer, Request $request, Pagination $pagination) : JsonResponse
+    public function list(SerializerInterface $serializer, Request $request, Pagination $pagination, TableDetails $tableDetails) : JsonResponse
     {
+        $response = new JsonResponse();
+        $response->setEtag(md5($tableDetails->lastUpdate('client') . $this->getUser()->getEmail()));
+        $response->headers->addCacheControlDirective('no-control');
+        $response->setPublic();
+
+        if($response->isNotModified($request)) {
+            return $response;
+        }
+
         $limit = $request->query->get('limit', $this->getParameter('default_client_limit'));
         $page = $request->query->get('page', 1);
         $route = $request->attributes->get('_route');
@@ -72,16 +132,21 @@ class ClientController extends AbstractController
 
         $paginated = $pagination->getData();
         $data = $serializer->serialize($paginated, 'json');
-        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
+
+        $response->setJson($data);
+
+        return $response;
     }
 
     /**
      * Client creation - Admin only
-     * @Route("api/admin/clients", name="client_create", methods={"POST"})
+     * @Route("admin/clients", name="create", methods={"POST"})
      * @SWG\Parameter(
-     *   name="body",
+     *   name="Client",
+     *   description="Fields to provide to create a client",
      *   in="body",
      *   required=true,
+     *   type="json",
      *   @SWG\Schema(
      *     type="object",
      *     title="Client field",
@@ -92,40 +157,65 @@ class ClientController extends AbstractController
      * )
      * @SWG\Response(
      *     response=201,
-     *     description="Create a client"
+     *     description="CREATED",
+     *     @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=Client::class))
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=400,
+     *     description="BAD REQUEST"
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
      * )
      * @SWG\Tag(name="Client")
      * @nSecurity(name="Bearer")
      * @param Request $request
      * @param EntityManagerInterface $manager
-     * @param FormErrors $formErrors
      * @param UserPasswordEncoderInterface $encoder
-     * @return Response
+     * @param SerializerInterface $serializer
+     * @param ValidatorInterface $validator
+     * @return JsonResponse
      */
-    public function create(Request $request, EntityManagerInterface $manager, FormErrors $formErrors, UserPasswordEncoderInterface $encoder) : Response
+    public function create(Request $request, EntityManagerInterface $manager, UserPasswordEncoderInterface $encoder, SerializerInterface $serializer, ValidatorInterface $validator) : JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        $client = new Client();
-        $form = $this->createForm(ClientType::class, $client);
-        $form->submit($data);
-        if($form->isSubmitted() && !$form->isValid()) {
-            $errors = $formErrors->getErrors($form);
-            return new JsonResponse($errors, 400, [], false);
+        $client = $serializer->deserialize($request->getContent(), Client::class, 'json');
+        $errors = $validator->validate($client);
+        if(count($errors) > 0) {
+            $data = $serializer->serialize($errors, 'json');
+            return new JsonResponse($data, 400, [], true);
         }
         $password = $encoder->encodePassword($client, $client->getPassword());
         $client->setPassword($password);
         $manager->persist($client);
         $manager->flush();
-        return new Response('', Response::HTTP_CREATED);
+        $data = $serializer->serialize($client, 'json');
+        return new JsonResponse($data, Response::HTTP_CREATED);
     }
 
     /**
      * Client update
-     * @Route("api/clients/{id}", name="client_update", methods={"PUT"})
+     * @Route("clients/{id}", name="update", methods={"PUT"})
      * @SWG\Parameter(
-     *   name="body",
+     *   name="id",
+     *   description="Id of the client to update",
+     *   in="path",
+     *   required=true,
+     *   type="integer"
+     * )
+     * @SWG\Parameter(
+     *   name="Client",
+     *   description="Fields to provide to update a client",
      *   in="body",
      *   required=true,
+     *   type="json",
      *   @SWG\Schema(
      *     type="object",
      *     title="Client field",
@@ -135,8 +225,28 @@ class ClientController extends AbstractController
      *     )
      * )
      * @SWG\Response(
-     *     response=202,
-     *     description="Update a client"
+     *     response=200,
+     *     description="OK",
+     *     @SWG\Schema(
+     *         type="array",
+     *         @SWG\Items(ref=@Model(type=CLient::class))
+     *     )
+     * )
+     * @SWG\Response(
+     *     response=400,
+     *     description="BAD REQUEST"
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
+     * )
+     * @SWG\Response(
+     *     response=404,
+     *     description="NOT FOUND"
      * )
      * @SWG\Tag(name="Client")
      * @nSecurity(name="Bearer")
@@ -146,11 +256,13 @@ class ClientController extends AbstractController
      * @param EntityManagerInterface $manager
      * @param FormErrors $formErrors
      * @param UserPasswordEncoderInterface $encoder;
-     * @return Response
+     * @param SerializerInterface $serializer
+     * @return JsonResponse
      */
-    public function update(Client $client, Request $request, EntityManagerInterface $manager, FormErrors $formErrors, UserPasswordEncoderInterface $encoder) : Response
+    public function update(Client $client, Request $request, EntityManagerInterface $manager, FormErrors $formErrors, UserPasswordEncoderInterface $encoder, SerializerInterface $serializer) : JsonResponse
     {
         $data = json_decode($request->getContent(), true);
+        // Use symfony/forms for update @see https://github.com/schmittjoh/JMSSerializerBundle/issues/575#issuecomment-303058694
         $form = $this->createForm(ClientType::class, $client);
         $form->submit($data);
         if($form->isSubmitted() && !$form->isValid()) {
@@ -160,26 +272,46 @@ class ClientController extends AbstractController
         $password = $encoder->encodePassword($client, $client->getPassword());
         $client->setPassword($password);
         $manager->flush();
-        return new Response('', Response::HTTP_ACCEPTED);
+        $data = $serializer->serialize($client, 'json');
+        return new JsonResponse($data, Response::HTTP_OK);
     }
 
     /**
      * Client delete - Admin only
-     * @Route("api/admin/clients/{id}", name="client_delete", methods={"DELETE"})
+     * @Route("admin/clients/{id}", name="delete", methods={"DELETE"})
+     * @SWG\Parameter(
+     *   name="id",
+     *   description="Id of the client to delete",
+     *   in="path",
+     *   required=true,
+     *   type="integer"
+     * )
      * @SWG\Response(
-     *     response=202,
-     *     description="Delete a client"
+     *     response=204,
+     *     description="NO CONTENT"
+     * )
+     * @SWG\Response(
+     *     response=401,
+     *     description="UNAUTHORIZED - JWT Token not found | Expired JWT Token | Invalid JWT Token"
+     * )
+     * @SWG\Response(
+     *     response=403,
+     *     description="ACCESS DENIED"
+     * )
+     * @SWG\Response(
+     *     response=404,
+     *     description="NOT FOUND"
      * )
      * @SWG\Tag(name="Client")
      * @nSecurity(name="Bearer")
      * @param Client $client
      * @param EntityManagerInterface $manager
-     * @return Response
+     * @return JsonResponse
      */
-    public function delete(Client $client, EntityManagerInterface $manager) : Response
+    public function delete(Client $client, EntityManagerInterface $manager) : JsonResponse
     {
         $manager->remove($client);
         $manager->flush();
-        return new Response('', Response::HTTP_ACCEPTED);
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }
