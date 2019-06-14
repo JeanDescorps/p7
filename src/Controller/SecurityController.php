@@ -17,7 +17,7 @@ class SecurityController
      *   description="Fields to provide to sign in and get a token",
      *   in="body",
      *   required=true,
-     *   type="json",
+     *   type="string",
      *   @SWG\Schema(
      *     type="object",
      *     title="Login field",

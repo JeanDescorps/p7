@@ -136,7 +136,7 @@ class MobileController extends AbstractController
      *   description="Fields to provide to create a mobile",
      *   in="body",
      *   required=true,
-     *   type="json",
+     *   type="string",
      *   @SWG\Schema(
      *     type="object",
      *     title="Mobile field",
@@ -202,7 +202,7 @@ class MobileController extends AbstractController
      *   description="Fields to provide to update a mobile",
      *   in="body",
      *   required=true,
-     *   type="json",
+     *   type="string",
      *   @SWG\Schema(
      *     type="object",
      *     title="Mobile field",

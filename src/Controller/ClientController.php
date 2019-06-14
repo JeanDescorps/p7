@@ -8,6 +8,9 @@ use App\Service\FormErrors;
 use App\Service\Pagination;
 use App\Service\TableDetails;
 use Doctrine\ORM\EntityManagerInterface;
+use JMS\Serializer\DeserializationContext;
+use JMS\Serializer\SerializationContext;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,7 +28,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  * @package App\Controller
  * @Route("api/", name="client_")
  */
-class ClientController
+class ClientController extends AbstractController
 {
     /**
      * Get details about a specific client
@@ -146,7 +149,7 @@ class ClientController
      *   description="Fields to provide to create a client",
      *   in="body",
      *   required=true,
-     *   type="json",
+     *   type="string",
      *   @SWG\Schema(
      *     type="object",
      *     title="Client field",
@@ -192,12 +195,27 @@ class ClientController
             $data = $serializer->serialize($errors, 'json');
             return new JsonResponse($data, 400, [], true);
         }
+        $plainPassword = $client->getPassword();
         $password = $encoder->encodePassword($client, $client->getPassword());
         $client->setPassword($password);
         $manager->persist($client);
         $manager->flush();
+
+        $subject = 'Account creation';
+        $content = $this->renderView('emails/creation.html.twig', [
+                'name' => $client->getName(),
+                'email' => $client->getEmail(),
+                'password' => $plainPassword,
+            ]
+        );
+        $headers = 'From: "Bilemo"<webdev@jeandescorps.fr>' . "\n";
+        $headers .= 'Reply-To: jean.webdev@gmail.com' . "\n";
+        $headers .= 'Content-Type: text/html; charset="iso-8859-1"' . "\n";
+        $headers .= 'Content-Transfer-Encoding: 8bit';
+        mail($client->getEmail(), $subject, $content, $headers);
+
         $data = $serializer->serialize($client, 'json');
-        return new JsonResponse($data, Response::HTTP_CREATED);
+        return new JsonResponse($data, Response::HTTP_CREATED, [], true);
     }
 
     /**
@@ -215,7 +233,7 @@ class ClientController
      *   description="Fields to provide to update a client",
      *   in="body",
      *   required=true,
-     *   type="json",
+     *   type="string",
      *   @SWG\Schema(
      *     type="object",
      *     title="Client field",
@@ -273,7 +291,7 @@ class ClientController
         $client->setPassword($password);
         $manager->flush();
         $data = $serializer->serialize($client, 'json');
-        return new JsonResponse($data, Response::HTTP_OK);
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 
     /**

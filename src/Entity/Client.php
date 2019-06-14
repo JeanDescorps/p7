@@ -11,6 +11,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use JMS\Serializer\Annotation\ExclusionPolicy;
 use JMS\Serializer\Annotation\Expose;
 use Hateoas\Configuration\Annotation as Hateoas;
+use JMS\Serializer\Annotation\Groups;
 
 
 /**
@@ -42,7 +43,7 @@ use Hateoas\Configuration\Annotation as Hateoas;
  *          absolute = true
  *      ),
  *      exclusion = @Hateoas\Exclusion(
- *          excludeIf = "expr(not is_granted(['ROLE_ADMIN']))"
+ *          excludeIf = "expr(not is_granted(['ROLE_ADMIN']))",
  *      )
  * )
  */

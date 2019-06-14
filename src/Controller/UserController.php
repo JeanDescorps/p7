@@ -213,7 +213,7 @@ class UserController extends AbstractController
      *   description="Fields to provide to create an user",
      *   in="body",
      *   required=true,
-     *   type="json",
+     *   type="string",
      *   @SWG\Schema(
      *     type="object",
      *     title="User field",
@@ -277,7 +277,7 @@ class UserController extends AbstractController
      *   description="Fields to provide to update an user",
      *   in="body",
      *   required=true,
-     *   type="json",
+     *   type="string",
      *   @SWG\Schema(
      *     type="object",
      *     title="User field",
