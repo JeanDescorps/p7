@@ -79,6 +79,12 @@ class MobileController extends AbstractController
      *   in="query",
      *   type="integer"
      * )
+     * @SWG\Parameter(
+     *   name="name",
+     *   description="The mobile name to search",
+     *   in="query",
+     *   type="string"
+     * )
      * @SWG\Response(
      *     response=200,
      *     description="OK",
@@ -115,10 +121,13 @@ class MobileController extends AbstractController
         $page = $request->query->get('page', 1);
         $route = $request->attributes->get('_route');
 
+        $criteria = !empty($request->query->get('name')) ? ['name' => $request->query->get('name')] : [];
+
         $pagination->setEntityClass(Mobile::class)
             ->setRoute($route);
         $pagination->setCurrentPage($page)
             ->setLimit($limit);
+        $pagination->setCriteria($criteria);
 
         $paginated = $pagination->getData();
         $data = $serializer->serialize($paginated, 'json');
