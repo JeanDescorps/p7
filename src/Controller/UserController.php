@@ -10,6 +10,7 @@ use App\Service\Pagination;
 use App\Service\TableDetails;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use JMS\Serializer\SerializationContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -69,7 +70,7 @@ class UserController extends AbstractController
     public function show(User $userC, SerializerInterface $serializer) : JsonResponse
     {
         $data = $serializer->serialize($userC, 'json');
-        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
+        return new JsonResponse($data, JsonResponse::HTTP_OK, [], true, SerializationContext::create()->setGroups(array('Default')));
     }
 
     /**
@@ -133,7 +134,7 @@ class UserController extends AbstractController
             ->setLimit($limit);
 
         $paginated = $pagination->getData();
-        $data = $serializer->serialize($paginated, 'json');
+        $data = $serializer->serialize($paginated, 'json', SerializationContext::create()->setGroups(array('Default')));
 
         $response->setJson($data);
 
@@ -198,7 +199,7 @@ class UserController extends AbstractController
         $pagination->setCriteria(['client' => $this->getUser()]);
 
         $paginated = $pagination->getData();
-        $data = $serializer->serialize($paginated, 'json');
+        $data = $serializer->serialize($paginated, 'json', SerializationContext::create()->setGroups(array('Default')));
 
         $response->setJson($data);
 
@@ -258,7 +259,7 @@ class UserController extends AbstractController
             ->setClient($this->getUser());
         $manager->persist($user);
         $manager->flush();
-        $data = $serializer->serialize($user, 'json');
+        $data = $serializer->serialize($user, 'json', SerializationContext::create()->setGroups(array('Default')));
         return new JsonResponse($data, Response::HTTP_CREATED, [], true);
     }
 
@@ -332,7 +333,7 @@ class UserController extends AbstractController
         }
         $userC->setUpdatedAt(new DateTime());
         $manager->flush();
-        $data = $serializer->serialize($userC, 'json');
+        $data = $serializer->serialize($userC, 'json', SerializationContext::create()->setGroups(array('Default')));
         return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 

@@ -69,7 +69,7 @@ class ClientController extends AbstractController
      */
     public function show(Client $client, SerializerInterface $serializer) : JsonResponse
     {
-        $data = $serializer->serialize($client, 'json');
+        $data = $serializer->serialize($client, 'json', SerializationContext::create()->setGroups(array('Default')));
         return new JsonResponse($data, JsonResponse::HTTP_OK, [], true);
     }
 
@@ -134,7 +134,7 @@ class ClientController extends AbstractController
             ->setLimit($limit);
 
         $paginated = $pagination->getData();
-        $data = $serializer->serialize($paginated, 'json');
+        $data = $serializer->serialize($paginated, 'json', SerializationContext::create()->setGroups(array('Default')));
 
         $response->setJson($data);
 
@@ -189,7 +189,7 @@ class ClientController extends AbstractController
      */
     public function create(Request $request, EntityManagerInterface $manager, UserPasswordEncoderInterface $encoder, SerializerInterface $serializer, ValidatorInterface $validator) : JsonResponse
     {
-        $client = $serializer->deserialize($request->getContent(), Client::class, 'json');
+        $client = $serializer->deserialize($request->getContent(), Client::class, 'json', DeserializationContext::create()->setGroups(array('write')));
         $errors = $validator->validate($client);
         if(count($errors) > 0) {
             $data = $serializer->serialize($errors, 'json');
@@ -201,6 +201,7 @@ class ClientController extends AbstractController
         $manager->persist($client);
         $manager->flush();
 
+        /*
         $subject = 'Account creation';
         $content = $this->renderView('emails/creation.html.twig', [
                 'name' => $client->getName(),
@@ -212,9 +213,9 @@ class ClientController extends AbstractController
         $headers .= 'Reply-To: jean.webdev@gmail.com' . "\n";
         $headers .= 'Content-Type: text/html; charset="iso-8859-1"' . "\n";
         $headers .= 'Content-Transfer-Encoding: 8bit';
-        mail($client->getEmail(), $subject, $content, $headers);
+        mail($client->getEmail(), $subject, $content, $headers);*/
 
-        $data = $serializer->serialize($client, 'json');
+        $data = $serializer->serialize($client, 'json', SerializationContext::create()->setGroups(array('Default')));
         return new JsonResponse($data, Response::HTTP_CREATED, [], true);
     }
 
@@ -290,7 +291,7 @@ class ClientController extends AbstractController
         $password = $encoder->encodePassword($client, $client->getPassword());
         $client->setPassword($password);
         $manager->flush();
-        $data = $serializer->serialize($client, 'json');
+        $data = $serializer->serialize($client, 'json', SerializationContext::create()->setGroups(array('Default')));
         return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 

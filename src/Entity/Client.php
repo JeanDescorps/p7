@@ -25,6 +25,9 @@ use JMS\Serializer\Annotation\Groups;
  *          "client_show",
  *          parameters = { "id" = "expr(object.getId())" },
  *          absolute = true,
+ *      ),
+ *     exclusion = @Hateoas\Exclusion(
+ *          groups = "Default"
  *      )
  * )
  * @Hateoas\Relation(
@@ -33,6 +36,9 @@ use JMS\Serializer\Annotation\Groups;
  *          "client_update",
  *          parameters = { "id" = "expr(object.getId())" },
  *          absolute = true
+ *      ),
+ *     exclusion = @Hateoas\Exclusion(
+ *          groups = "Default"
  *      )
  * )
  * @Hateoas\Relation(
@@ -44,6 +50,7 @@ use JMS\Serializer\Annotation\Groups;
  *      ),
  *      exclusion = @Hateoas\Exclusion(
  *          excludeIf = "expr(not is_granted(['ROLE_ADMIN']))",
+ *          groups = "Default"
  *      )
  * )
  */
@@ -58,6 +65,7 @@ class Client implements UserInterface
 
     /**
      * @Expose
+     * @Groups({"Default", "write"})
      * @ORM\Column(type="string", length=255)
      * @Assert\NotBlank
      * @Assert\Length(
@@ -69,6 +77,7 @@ class Client implements UserInterface
 
     /**
      * @Expose
+     * @Groups({"Default", "write"})
      * @ORM\Column(type="string", length=255)
      * @Assert\NotBlank
      * @Assert\Email()
@@ -81,6 +90,8 @@ class Client implements UserInterface
     private $users;
 
     /**
+     * @Expose
+     * @Groups({"write"})
      * @ORM\Column(type="string", length=255)
      * @Assert\NotBlank
      * @Assert\Regex(
