@@ -201,7 +201,6 @@ class ClientController extends AbstractController
         $manager->persist($client);
         $manager->flush();
 
-        /*
         $subject = 'Account creation';
         $content = $this->renderView('emails/creation.html.twig', [
                 'name' => $client->getName(),
@@ -213,7 +212,7 @@ class ClientController extends AbstractController
         $headers .= 'Reply-To: jean.webdev@gmail.com' . "\n";
         $headers .= 'Content-Type: text/html; charset="iso-8859-1"' . "\n";
         $headers .= 'Content-Transfer-Encoding: 8bit';
-        mail($client->getEmail(), $subject, $content, $headers);*/
+        mail($client->getEmail(), $subject, $content, $headers);
 
         $data = $serializer->serialize($client, 'json', SerializationContext::create()->setGroups(array('Default')));
         return new JsonResponse($data, Response::HTTP_CREATED, [], true);
