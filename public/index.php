@@ -25,7 +25,6 @@ $kernel = new Kernel($_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG']);
 
 $kernel = new CacheKernel($kernel);
 
-
 $request = Request::createFromGlobals();
 $response = $kernel->handle($request);
 $response->send();
