@@ -106,6 +106,10 @@ class Pagination
         return $this;
     }
 
+    /**
+     * Get paginated data
+     * @return PaginatedRepresentation
+     */
      public function getData()
     {
         // Offset

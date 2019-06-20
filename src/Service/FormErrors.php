@@ -7,6 +7,11 @@ use Symfony\Component\Form\FormInterface;
 
 class FormErrors
 {
+    /**
+     * Get form errors and format them
+     * @param FormInterface $form
+     * @return Array
+     */
     public function getErrors(FormInterface $form) : Array
     {
         $errors = array();
