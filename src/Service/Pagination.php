@@ -67,7 +67,7 @@ class Pagination
         return $this;
     }
 
-    public function getCriteria()
+    public function getCriteria(): array
     {
         return $this->criteria;
     }
@@ -79,7 +79,7 @@ class Pagination
         return $this;
     }
 
-    public function getOrder()
+    public function getOrder(): array
     {
         return $this->order;
     }
@@ -110,7 +110,7 @@ class Pagination
      * Get paginated data
      * @return PaginatedRepresentation
      */
-     public function getData()
+     public function getData(): PaginatedRepresentation
     {
         // Offset
         $offset = $this->currentPage * $this->limit - $this->limit;
