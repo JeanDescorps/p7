@@ -84,7 +84,7 @@ class Mobile
      * @Assert\NotBlank
      * @Assert\Length(
      *     min = 3,
-     *     max = 1000
+     *     max = 255
      * )
      */
     private $description;
