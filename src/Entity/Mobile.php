@@ -68,6 +68,9 @@ class Mobile
      * @Expose
      * @ORM\Column(type="decimal", precision=65, scale=2)
      * @Assert\NotBlank
+     * @Assert\Length(
+     *     max = 65
+     * )
      * @Assert\Regex(
      *     pattern="/^[0-9]+(\.[0-9]{1,2})?$/",
      *     match="true"

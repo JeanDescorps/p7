@@ -81,6 +81,9 @@ class Client implements UserInterface
      * @ORM\Column(type="string", length=255)
      * @Assert\NotBlank
      * @Assert\Email()
+     * @Assert\Length(
+     *     max = 255
+     * )
      */
     private $email;
 
@@ -94,6 +97,10 @@ class Client implements UserInterface
      * @Groups({"write"})
      * @ORM\Column(type="string", length=255)
      * @Assert\NotBlank
+     * @Assert\Length(
+     *     min = 8,
+     *     max = 255
+     * )
      * @Assert\Regex(
      *     pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W)^",
      *     match = true,
