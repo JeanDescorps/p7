@@ -19,7 +19,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * Get errors and format them in json
+     * Get errors form and format them in json
      * @param GetResponseForExceptionEvent $event
      */
     public function processException(GetResponseForExceptionEvent $event) : void
