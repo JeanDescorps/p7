@@ -365,14 +365,14 @@ class UserController extends AbstractController
      * )
      * @SWG\Tag(name="User")
      * @nSecurity(name="Bearer")
-     * @Security("user === user.getClient() || is_granted('ROLE_ADMIN')")
+     * @Security("user === userC.getClient() || is_granted('ROLE_ADMIN')")
      * @param User $user
      * @param EntityManagerInterface $manager
      * @return JsonResponse
      */
-    public function delete(User $user, EntityManagerInterface $manager) : JsonResponse
+    public function delete(User $userC, EntityManagerInterface $manager) : JsonResponse
     {
-        $manager->remove($user);
+        $manager->remove($userC);
         $manager->flush();
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
